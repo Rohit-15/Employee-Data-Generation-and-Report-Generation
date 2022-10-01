@@ -1,0 +1,171 @@
+import pandas as pd
+import numpy as np
+import datetime as dat
+from datetime import datetime
+import random
+import names
+import logging
+
+logging.basicConfig(filename='data_generation.log',level=logging.INFO,format='%(asctime)s:%(name)s:%(message)s')
+
+start_date = input("Enter a start date (month/date/year):")
+end_date = input("Enter an end date (month/date/year):")
+no_of_users = input("Enter number of users:")
+
+if (
+    datetime.strptime(end_date, "%m/%d/%Y")
+    - datetime.strptime(start_date, "%m/%d/%Y")
+    ).days > 0:
+    start_date=start_date
+    end_date=end_date
+    logging.info("Entered dates in correct order")
+else:
+    start_date="7/1/2022"
+    end_date="8/31/2022"
+    logging.info("Entered dates in wrong order,made use of default dates")
+
+try:
+    no_of_users=int(no_of_users)
+except:
+    no_of_users=400
+
+
+def data_generation(start_date, end_date, no_of_users):
+    # generating dates
+
+    dates = pd.date_range(start_date, end_date)
+    u = dates.repeat(no_of_users)
+    date = pd.DataFrame(u, columns=["Date"])
+
+    # generating dataframe for log-in,log-out and user
+
+    np.random.seed(10)
+    time_in = []
+    for i in dates:
+        for j in range(no_of_users):
+            iin = datetime(
+                day=i.day,
+                month=i.month,
+                year=i.year,
+                hour=np.random.randint(1, 22),
+                minute=np.random.randint(1, 60),
+                second=np.random.randint(1, 60),
+            )
+            time_in.append(iin)
+    In_time = pd.DataFrame(time_in, columns=["Log_In_Time"])
+    users = list(np.arange(1, no_of_users + 1, 1))
+    user = []
+    for i in range(len(dates)):
+        random.shuffle(users)
+        user.extend(users)
+    user = pd.DataFrame(user, columns=["User"])
+    ee = pd.concat([user, date, In_time], axis=1)
+
+    def log_out_time(column):
+        return column + dat.timedelta(hours=np.random.randint(1, 12))
+
+    ee["Log_Out_Time"] = ee["Log_In_Time"].apply(log_out_time)
+    logging.info('Log-in,Log-Out,User dataframe created')
+
+    # generating system numbers and emp id
+    rep = (len(dates) * no_of_users) / 100
+    system = list(np.arange(1, 101).repeat(rep))
+    random.shuffle(system)
+    System = pd.DataFrame(system, columns=["System_Name"])
+
+    ee = pd.concat([System, ee], axis=1)
+
+    def get_system_name(column):
+        return "System" + str(column)
+
+    ee["System_Name"] = ee["System_Name"].apply(get_system_name)
+
+    def emp_id(column):
+        return str(column)
+
+    ee["Emp_ID"] = ee["User"].apply(emp_id)
+    logging.info('System number and employee id created')
+
+    # generating department,title,machine for users
+
+    department_list = [
+        "Data Analyst",
+        "ML engineer",
+        "Software engineer",
+        "Researcher",
+        "Team Lead",
+        "System Engineer",
+    ]
+    title_list = ["CS", "DS", "SS", "ID", "FS"]
+    machine_list = ["AWS", "GCP"]
+    ee["Department"] = np.random.choice(department_list, len(ee["Emp_ID"]))
+    ee["Title"] = np.random.choice(title_list, len(ee["Emp_ID"]))
+    ee["Machine"] = np.random.choice(machine_list, len(ee["Emp_ID"]))
+
+    df = ee[
+        [
+            "Emp_ID",
+            "System_Name",
+            "User",
+            "Date",
+            "Log_In_Time",
+            "Log_Out_Time",
+            "Department",
+            "Title",
+            "Machine",
+        ]
+    ]
+    logging.info('Department,Title,Machine assigned')
+
+    # generating names for users
+    value = []
+    np.random.seed(11)
+    for i in range(no_of_users + 1):
+        u = names.get_first_name()
+        value.append(u)
+    key = list(np.arange(no_of_users + 1))
+    name_dict = {}
+    for i in range(len(key)):
+        name_dict[key[i]] = value[i]
+
+    def get_names(column):
+        return name_dict[column]
+
+    df["Name_of_User"] = df["User"].apply(get_names)
+    df = df[
+        [
+            "Emp_ID",
+            "System_Name",
+            "Name_of_User",
+            "Date",
+            "Log_In_Time",
+            "Log_Out_Time",
+            "Department",
+            "Title",
+            "Machine",
+        ]
+    ]
+    logging.info('Name of user generated')
+     df.to_excel("Data_Population_7_9_2022.xlsx")
+
+    # subsetting the dataframe by date and generating individual dataframe
+    dates_dict = {}
+    for i in dates:
+        df_name = "date_" + i.strftime("%Y%m%d")
+        dates_dict[df_name] = df[df["Date"] == i]
+
+    def daily_data_to_excel():
+        for i in dates_dict:
+            dt = dates_dict[i]
+            dt.to_excel(str(i + ".xlsx"), index=False)
+        return ()
+
+     daily_data_to_excel()
+    logging.info('Excel files for each date created')
+
+    print(df)
+
+    return
+
+
+data_generation(start_date, end_date, no_of_users)
