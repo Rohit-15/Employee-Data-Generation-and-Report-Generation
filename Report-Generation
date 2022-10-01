@@ -1,0 +1,88 @@
+from glob import glob
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import calendar
+
+
+
+
+# importing the downloaded files and consolidating into a dataframe
+def get_df():
+    files_list = glob("date*")
+    df = pd.read_excel(files_list[0])
+    for i in range(1, len(files_list)):
+        df_2 = pd.read_excel(files_list[i])
+        df = pd.concat((df, df_2))
+    tyu = df["Log_Out_Time"] - df["Log_In_Time"]
+    yut = pd.DataFrame(tyu, columns=["Time_Spent"])
+    df = pd.concat([df, yut], axis=1)
+    df["Hours"] = df["Time_Spent"] / pd.Timedelta(hours=1)
+    df["Cost"] = df["Hours"] * 2.79
+    return(df)
+
+df=get_df()
+
+#defining parameters for report generating functions
+
+date='Date'
+nou='Name_of_User'
+cost='Cost'
+w_col= df.Date.dt.isocalendar().week
+m_col= df.Date.dt.month
+
+
+    
+# generating cost per user daily report
+
+
+def get_daily_report(df,date,nou,cost):
+    daily_data = pd.DataFrame(df.groupby([date,nou])[cost].sum())
+    print(daily_data)
+    return()
+
+# generating top 20 users per week weekly report
+
+
+def get_weekly_report(df,nou,w_col,cost):
+    weekly_data = df.pivot_table(
+        index=nou,
+        columns=w_col,
+        values=cost,
+        aggfunc="sum",
+        )
+    print(weekly_data)
+    e=weekly_data.transpose()
+    data={}
+    for i in e.index:
+    
+        data[i]=pd.DataFrame(e.loc[i])
+        data[i].rename(columns={i:'cost'},inplace=True)
+    for i in data:
+        hf=data[i].sort_values(ascending=False,by='cost').head(20)
+        hf.plot(kind='bar',title='Top 20 users for week'+' '+str(i),ylabel='Cost (in $)')
+    return()
+
+
+# generating cost per user monthly report
+
+
+def get_monthly_report(df,nou,m_col,cost):
+    monthly_data = df.pivot_table(
+        index=nou, columns=m_col, values=cost, aggfunc="sum"
+        )
+    print(monthly_data)
+    for i in monthly_data.columns:
+        monthly_data.rename(columns={i:calendar.month_name[i]},inplace=True)
+    monthly_data['Total_Cost']=monthly_data.sum(axis=1)
+    monthly_data=monthly_data.sort_values(ascending=False,by='Total_Cost').iloc[:20,:]
+    monthly_data.iloc[:,:-1].plot(kind='bar',stacked='True')
+    plt.plot(monthly_data['Total_Cost'],c='black')
+    plt.ylabel('Cost(in $)')
+    plt.title('Top 20 Users')
+    plt.xticks(rotation=90)
+    plt.show()
+    return()
+
+
