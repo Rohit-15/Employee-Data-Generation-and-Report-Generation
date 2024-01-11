@@ -1,0 +1,3 @@
+This project focuses on generating insightful reports, presented in graphical form, to analyze the weekly and monthly costs associated with each employee in the company. The initial phase involves the generation of synthetic data, encompassing log-in and log-out times, employee details (IDs, department, and job titles), and the number of employees. 
+
+Subsequently, utilizing Pandas, Numpy, Matplotlib, and Seaborn libraries in Python, the project culminates in the creation of comprehensive reports through graphical representations, providing a clear understanding of individual employee costs over specified timeframes.
